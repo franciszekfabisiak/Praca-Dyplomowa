@@ -9,7 +9,7 @@
 #include <zephyr/sys/byteorder.h>
 #include "common.h"
 
-int setup_initiator(struct bt_conn* connection);
+int setup_initiator(void);
 int act_as_initiator(void);
 
 #endif

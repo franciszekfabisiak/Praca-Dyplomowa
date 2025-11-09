@@ -5,6 +5,8 @@
 static K_SEM_DEFINE(sem_written, 0, 1);
 static K_SEM_DEFINE(sem_discovered, 0, 1);
 
+static struct bt_conn *connection;
+
 static struct bt_uuid_128 step_data_char_uuid =
 	BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x87654321, 0x4567, 0x2389, 0x1254, 0xf67f9fedcba8));
 
@@ -50,6 +52,44 @@ static void write_func(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_p
 	}
 
 	k_sem_give(&sem_written);
+}
+
+// public functions
+int setup_reflector(void)
+{
+	struct bt_gatt_discover_params* discover_params;
+	struct k_sem* sem_connected = get_sem_connected();
+	struct k_sem* sem_config_created = get_sem_config_created();
+	
+	k_sem_take(sem_connected, K_FOREVER);
+
+	connection = get_bt_connection();
+	printk("After sem connected \n");
+
+	int err = get_bt_le_cs_default_settings(true, connection);
+	if (err) {
+		printk("Failed to configure default CS settings (err %d)\n", err);
+		return err;
+	}
+
+	k_sem_take(sem_config_created, K_FOREVER);
+	printk("After sem_config_created \n");
+
+	discover_params = get_discover_params();
+
+	err = bt_gatt_discover(connection, discover_params);
+	if (err) {
+		printk("Discovery failed (err %d)\n", err);
+		return err;
+	}
+
+	err = k_sem_take(&sem_discovered, K_SECONDS(10));
+	printk("After sem_discovered \n");
+	if (err) {
+		printk("Timed out during GATT discovery\n");
+		return err;
+	}
+	return 0;
 }
 
 struct k_sem* get_sem_written(void)

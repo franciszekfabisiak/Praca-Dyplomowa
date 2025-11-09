@@ -9,6 +9,7 @@
 #include <zephyr/sys/byteorder.h>
 #include "common.h"
 
+int setup_reflector(void);
 struct bt_gatt_discover_params* get_discover_params(void);
 int act_as_reflector(struct bt_conn* connection);
 struct k_sem* get_sem_discovered(void);

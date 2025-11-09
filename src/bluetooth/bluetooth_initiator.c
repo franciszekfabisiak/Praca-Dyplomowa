@@ -2,14 +2,33 @@
 #include "bluetooth_global.h"
 #include "common.h"
 
-int setup_initiator(struct bt_conn* connection){
+// static struct bt_conn *connection;
+
+int setup_initiator(void){
 
 	struct k_sem* sem_acl_encryption_enabled = get_sem_acl_encryption_enabled();
 	struct k_sem* sem_remote_capabilities_obtained = get_sem_remote_capabilities_obtained();
 	struct k_sem* sem_config_created = get_sem_config_created();
 	struct k_sem* sem_cs_security_enabled = get_sem_cs_security_enabled();
+	struct k_sem* sem_connected = get_sem_connected();
 
-	int err = bt_conn_set_security(connection, BT_SECURITY_L2);
+	int err = start_bt_scan();
+	if (err) {
+		printk("Scanning failed to start (err %d)\n", err);
+		return 0;
+	}
+
+	k_sem_take(sem_connected, K_FOREVER);
+	bt_le_scan_stop();
+	printk("After sem connected \n");
+	struct bt_conn* connection = get_bt_connection();
+
+	err = get_bt_le_cs_default_settings(false, connection);
+	if (err) {
+		printk("Failed to configure default CS settings (err %d)\n", err);
+	}
+
+	err = bt_conn_set_security(connection, BT_SECURITY_L2);
 	if (err) {
 		printk("Failed to encrypt connection (err %d)\n", err);
 		return err;

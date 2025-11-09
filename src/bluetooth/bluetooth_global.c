@@ -148,6 +148,13 @@ int ble_init(void){
 		printk("Advertising failed to start (err %d)\n", err);
 		return err;
 	}
+
+	err = register_step_data_gatt_service();
+	if (err) {
+		printk("bt_gatt_service_register() returned err %d\n", err);
+		return 0;
+	}
+	
     return 0;
 }
 
