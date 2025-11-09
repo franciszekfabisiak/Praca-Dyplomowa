@@ -25,7 +25,9 @@ struct k_sem* get_sem_cs_security_enabled(void);
 struct k_sem* get_sem_procedure_done(void);
 struct k_sem* get_sem_connected(void);
 struct k_sem* get_sem_data_received(void);
+uint8_t* get_latest_local_steps(void);
 void call_estimate_distance(void);
 int get_bt_le_cs_default_settings(bool is_reflector, struct bt_conn *connection);
+int start_bt_scan(void);
 
 #endif

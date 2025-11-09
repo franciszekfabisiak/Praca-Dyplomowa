@@ -59,6 +59,10 @@ static void procedure_enable_cb(struct bt_conn *conn,
 				 struct bt_conn_le_cs_procedure_enable_complete *params);
 
 static void subevent_result_cb(struct bt_conn *conn, struct bt_conn_le_cs_subevent_result *result);
+static void device_found(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
+			 struct net_buf_simple *ad);
+			 
+static bool data_cb(struct bt_data *data, void *user_data);
 
 // other declarations
 static struct bt_gatt_attr gatt_attributes[] = {
@@ -124,6 +128,10 @@ struct k_sem* get_sem_data_received(void)
     return &sem_data_received;
 }
 
+uint8_t* get_latest_local_steps(void){
+	return &latest_local_steps[0];
+}
+
 int ble_init(void){
     
     /* Initialize the Bluetooth Subsystem */
@@ -163,6 +171,10 @@ int get_bt_le_cs_default_settings(bool is_reflector, struct bt_conn *connection)
 	else{
 		return bt_le_cs_set_default_settings(connection, &default_settings_initiator);
 	}
+}
+
+int start_bt_scan(void){
+	return bt_le_scan_start(BT_LE_SCAN_ACTIVE_CONTINUOUS, device_found);
 }
 
 // private functions
@@ -329,3 +341,55 @@ BT_CONN_CB_DEFINE(conn_cb) = {
 	.le_cs_procedure_enable_complete = procedure_enable_cb,
 	.le_cs_subevent_data_available = subevent_result_cb,
 };
+
+static bool data_cb(struct bt_data *data, void *user_data)
+{
+	char *name = user_data;
+	uint8_t len;
+
+	switch (data->type) {
+	case BT_DATA_NAME_SHORTENED:
+	case BT_DATA_NAME_COMPLETE:
+		len = MIN(data->data_len, NAME_LEN - 1);
+		memcpy(name, data->data, len);
+		name[len] = '\0';
+		return false;
+	default:
+		return true;
+	}
+}
+
+static void device_found(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
+			 struct net_buf_simple *ad)
+{
+	char addr_str[BT_ADDR_LE_STR_LEN];
+	char name[NAME_LEN] = {};
+	int err;
+
+	if (connection) {
+		return;
+	}
+
+	/* We're only interested in connectable events */
+	if (type != BT_GAP_ADV_TYPE_ADV_IND && type != BT_GAP_ADV_TYPE_ADV_DIRECT_IND) {
+		return;
+	}
+
+	bt_data_parse(ad, data_cb, name);
+
+	if (strcmp(name, sample_str)) {
+		return;
+	}
+
+	if (bt_le_scan_stop()) {
+		return;
+	}
+
+	printk("Found device with name %s, connecting...\n", name);
+
+	err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT,
+				&connection);
+	if (err) {
+		printk("Create conn to %s failed (%u)\n", addr_str, err);
+	}
+}

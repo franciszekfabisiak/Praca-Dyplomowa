@@ -20,64 +20,9 @@
 
 static struct bt_conn *connection;
 
-static const char sample_str[] = "CS Sample";
-
-static bool data_cb(struct bt_data *data, void *user_data)
-{
-	char *name = user_data;
-	uint8_t len;
-
-	switch (data->type) {
-	case BT_DATA_NAME_SHORTENED:
-	case BT_DATA_NAME_COMPLETE:
-		len = MIN(data->data_len, NAME_LEN - 1);
-		memcpy(name, data->data, len);
-		name[len] = '\0';
-		return false;
-	default:
-		return true;
-	}
-}
-
-static void device_found(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
-			 struct net_buf_simple *ad)
-{
-	char addr_str[BT_ADDR_LE_STR_LEN];
-	char name[NAME_LEN] = {};
-	int err;
-
-	if (connection) {
-		return;
-	}
-
-	/* We're only interested in connectable events */
-	if (type != BT_GAP_ADV_TYPE_ADV_IND && type != BT_GAP_ADV_TYPE_ADV_DIRECT_IND) {
-		return;
-	}
-
-	bt_data_parse(ad, data_cb, name);
-
-	if (strcmp(name, sample_str)) {
-		return;
-	}
-
-	if (bt_le_scan_stop()) {
-		return;
-	}
-
-	printk("Found device with name %s, connecting...\n", name);
-
-	err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT,
-				&connection);
-	if (err) {
-		printk("Create conn to %s failed (%u)\n", addr_str, err);
-	}
-}
-
 int main(void)
 {
 	int err;
-	connection = get_bt_connection();
 	struct k_sem* sem_connected = get_sem_connected();
 
 	printk("Starting Channel Sounding Demo init\n");
@@ -91,13 +36,15 @@ int main(void)
 		return 0;
 	}
 
-	err = bt_le_scan_start(BT_LE_SCAN_ACTIVE_CONTINUOUS, device_found);
+	err = start_bt_scan();
 	if (err) {
 		printk("Scanning failed to start (err %d)\n", err);
 		return 0;
 	}
 
 	k_sem_take(sem_connected, K_FOREVER);
+	printk("After sem connected \n");
+	connection = get_bt_connection();
 
 	err = get_bt_le_cs_default_settings(false, connection);
 	if (err) {

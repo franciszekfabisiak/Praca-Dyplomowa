@@ -11,7 +11,6 @@ static struct bt_uuid_128 step_data_char_uuid =
 static struct bt_gatt_discover_params discover_params;
 static struct bt_gatt_write_params write_params;
 static uint16_t step_data_attr_handle;
-static uint8_t latest_local_steps[STEP_DATA_BUF_LEN];
 
 static uint8_t discover_func(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			     struct bt_gatt_discover_params *params)
@@ -80,11 +79,12 @@ int act_as_reflector(struct bt_conn* connection){
 		printk("sem_procedure_done before\n");
 		k_sem_take(sem_procedure_done, K_FOREVER);
 		printk("sem_procedure_done after\n");
+		uint8_t* latest_local_steps = get_latest_local_steps();
 
 		write_params.func = write_func;
 		write_params.handle = step_data_attr_handle;
 		write_params.length = STEP_DATA_BUF_LEN;
-		write_params.data = &latest_local_steps[0];
+		write_params.data = latest_local_steps;
 		write_params.offset = 0;
 
 		err = bt_gatt_write(connection, &write_params);

@@ -67,8 +67,8 @@ int setup_initiator(struct bt_conn* connection){
 		.min_procedure_interval = 100,
 		.max_procedure_interval = 100,
 		.max_procedure_count = 0,
-		.min_subevent_len = 1250,//6750
-		.max_subevent_len = 1250,//6750
+		.min_subevent_len = 2500,//6750
+		.max_subevent_len = 2500,//6750
 		.tone_antenna_config_selection = BT_LE_CS_TONE_ANTENNA_CONFIGURATION_A1_B1,
 		.phy = BT_LE_CS_PROCEDURE_PHY_1M,
 		.tx_power_delta = 0x80,
