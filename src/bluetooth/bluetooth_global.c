@@ -1,4 +1,5 @@
 #include "bluetooth_global.h"
+#include <zephyr/logging/log.h>
 #include "common.h"
 
 static struct bt_uuid_128 step_data_char_uuid =
@@ -32,6 +33,8 @@ static K_SEM_DEFINE(sem_cs_security_enabled, 0, 1);
 static K_SEM_DEFINE(sem_procedure_done, 0, 1);
 static K_SEM_DEFINE(sem_connected, 0, 1);
 static K_SEM_DEFINE(sem_data_received, 0, 1);
+
+LOG_MODULE_REGISTER(bt_global);
 
 static struct bt_conn *connection;
 
@@ -137,7 +140,7 @@ int ble_init(void){
     /* Initialize the Bluetooth Subsystem */
 	int err = bt_enable(NULL);
 	if (err) {
-		printk("Bluetooth init failed (err %d)\n", err);
+		LOG_ERR("Bluetooth init failed (err %d)\n", err);
 		return err;
 	}
 
@@ -145,22 +148,22 @@ int ble_init(void){
 					      BT_GAP_ADV_FAST_INT_MAX_1, NULL),
 			      ad, ARRAY_SIZE(ad), NULL, 0);
 	if (err) {
-		printk("Advertising failed to start (err %d)\n", err);
+		LOG_ERR("Advertising failed to start (err %d)\n", err);
 		return err;
 	}
 
 	err = register_step_data_gatt_service();
 	if (err) {
-		printk("bt_gatt_service_register() returned err %d\n", err);
+		LOG_ERR("bt_gatt_service_register() returned err %d\n", err);
 		return 0;
 	}
-	
+
     return 0;
 }
 
 void call_estimate_distance(void)
 {
-	printk("estimating distance\n");
+	LOG_INF("estimating distance\n");
     estimate_distance(
         latest_local_steps, latest_step_data_len, latest_peer_steps,
         latest_step_data_len -
@@ -188,7 +191,7 @@ int start_bt_scan(void){
 static ssize_t on_attr_write_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 				const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
 {
-	printk("flag %d\n", flags);
+	LOG_INF("flag %d\n", flags);
 	if (flags & BT_GATT_WRITE_FLAG_PREPARE) {
 		return 0;
 	}
@@ -214,7 +217,7 @@ static ssize_t on_attr_write_cb(struct bt_conn *conn, const struct bt_gatt_attr 
 static void mtu_exchange_cb(struct bt_conn *conn, uint8_t err,
 			    struct bt_gatt_exchange_params *params)
 {
-	printk("MTU exchange %s (%u)\n", err == 0U ? "success" : "failed", bt_gatt_get_mtu(conn));
+	LOG_INF("MTU exchange %s (%u)\n", err == 0U ? "success" : "failed", bt_gatt_get_mtu(conn));
 }
 
 static void connected_cb(struct bt_conn *conn, uint8_t err)
@@ -222,7 +225,7 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 	char addr[BT_ADDR_LE_STR_LEN];
 
 	(void)bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-	printk("Connected to %s (err 0x%02X)\n", addr, err);
+	LOG_INF("Connected to %s (err 0x%02X)\n", addr, err);
 
 	__ASSERT(connection == conn, "Unexpected connected callback");
 
@@ -238,7 +241,7 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 
 	err = bt_gatt_exchange_mtu(connection, &mtu_exchange_params);
 	if (err) {
-		printk("%s: MTU exchange failed (err %d)\n", __func__, err);
+		LOG_ERR("%s: MTU exchange failed (err %d)\n", __func__, err);
 	}
 
 	k_sem_give(&sem_connected);
@@ -246,7 +249,7 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 
 static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
 {
-	printk("Disconnected (reason 0x%02X)\n", reason);
+	LOG_ERR("Disconnected (reason 0x%02X)\n", reason);
 
 	bt_conn_unref(conn);
 	connection = NULL;
@@ -255,9 +258,9 @@ static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
 static void security_changed_cb(struct bt_conn *conn, bt_security_t level, enum bt_security_err err)
 {
 	if (err) {
-		printk("Encryption failed. (err %d)\n", err);
+		LOG_ERR("Encryption failed. (err %d)\n", err);
 	} else {
-		printk("Security changed to level %d.\n", level);
+		LOG_INF("Security changed to level %d.\n", level);
 	}
 
 	k_sem_give(&sem_acl_encryption_enabled);
@@ -270,10 +273,10 @@ static void remote_capabilities_cb(struct bt_conn *conn,
 	ARG_UNUSED(params);
 
 	if (status == BT_HCI_ERR_SUCCESS) {
-		printk("CS capability exchange completed.\n");
+		LOG_INF("CS capability exchange completed.\n");
 		k_sem_give(&sem_remote_capabilities_obtained);
 	} else {
-		printk("CS capability exchange failed. (HCI status 0x%02x)\n", status);
+		LOG_ERR("CS capability exchange failed. (HCI status 0x%02x)\n", status);
 	}
 }
 
@@ -282,20 +285,20 @@ static void config_create_cb(struct bt_conn *conn,
 			     struct bt_conn_le_cs_config *config)
 {
 	if (status == BT_HCI_ERR_SUCCESS) {
-		printk("CS config creation complete. ID: %d\n", config->id);
+		LOG_INF("CS config creation complete. ID: %d\n", config->id);
 		k_sem_give(&sem_config_created);
 	} else {
-		printk("CS config creation failed. (HCI status 0x%02x)\n", status);
+		LOG_ERR("CS config creation failed. (HCI status 0x%02x)\n", status);
 	}
 }
 
 static void security_enable_cb(struct bt_conn *conn, uint8_t status)
 {
 	if (status == BT_HCI_ERR_SUCCESS) {
-		printk("CS security enabled.\n");
+		LOG_INF("CS security enabled.\n");
 		k_sem_give(&sem_cs_security_enabled);
 	} else {
-		printk("CS security enable failed. (HCI status 0x%02x)\n", status);
+		LOG_ERR("CS security enable failed. (HCI status 0x%02x)\n", status);
 	}
 }
 
@@ -305,20 +308,20 @@ static void procedure_enable_cb(struct bt_conn *conn,
 {
 	if (status == BT_HCI_ERR_SUCCESS) {
 		if (params->state == 1) {
-			printk("CS procedures enabled.\n");
+			LOG_INF("CS procedures enabled.\n");
 		} else {
-			printk("CS procedures disabled.\n");
+			LOG_INF("CS procedures disabled.\n");
 		}
 	} else {
-		printk("CS procedures enable failed. (HCI status 0x%02x)\n", status);
+		LOG_ERR("CS procedures enable failed. (HCI status 0x%02x)\n", status);
 	}
 }
 
 static void subevent_result_cb(struct bt_conn *conn, struct bt_conn_le_cs_subevent_result *result)
 {
-	printk("abort? %d\n", result->header.abort_step);
-	printk("steps %d\n", result->header.num_steps_reported);
-	printk("paths %d\n", result->header.num_antenna_paths);
+	LOG_INF("abort? %d\n", result->header.abort_step);
+	LOG_INF("steps %d\n", result->header.num_steps_reported);
+	LOG_INF("paths %d\n", result->header.num_antenna_paths);
 	
 	latest_num_steps_reported = result->header.num_steps_reported;
 	n_ap = result->header.num_antenna_paths;
@@ -328,7 +331,7 @@ static void subevent_result_cb(struct bt_conn *conn, struct bt_conn_le_cs_subeve
 			       result->step_data_buf->len);
 			latest_step_data_len = result->step_data_buf->len;
 		} else {
-			printk("Not enough memory to store step data. (%d > %d)\n",
+			LOG_ERR("Not enough memory to store step data. (%d > %d)\n",
 			       result->step_data_buf->len, STEP_DATA_BUF_LEN);
 			latest_num_steps_reported = 0;
 		}
@@ -392,11 +395,11 @@ static void device_found(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
 		return;
 	}
 
-	printk("Found device with name %s, connecting...\n", name);
+	LOG_INF("Found device with name %s, connecting...\n", name);
 
 	err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT,
 				&connection);
 	if (err) {
-		printk("Create conn to %s failed (%u)\n", addr_str, err);
+		LOG_ERR("Create conn to %s failed (%u)\n", addr_str, err);
 	}
 }

@@ -1,6 +1,9 @@
 #include "bluetooth_initiator.h"
 #include "bluetooth_global.h"
+#include <zephyr/logging/log.h>
 #include "common.h"
+
+LOG_MODULE_REGISTER(bt_initiator, CONFIG_LOG_DEFAULT_LEVEL);
 
 // static struct bt_conn *connection;
 
@@ -14,23 +17,23 @@ int setup_initiator(void){
 
 	int err = start_bt_scan();
 	if (err) {
-		printk("Scanning failed to start (err %d)\n", err);
+		LOG_ERR("Scanning failed to start (err %d)\n", err);
 		return 0;
 	}
 
 	k_sem_take(sem_connected, K_FOREVER);
 	bt_le_scan_stop();
-	printk("After sem connected \n");
+	LOG_INF("After sem connected \n");
 	struct bt_conn* connection = get_bt_connection();
 
 	err = get_bt_le_cs_default_settings(false, connection);
 	if (err) {
-		printk("Failed to configure default CS settings (err %d)\n", err);
+		LOG_ERR("Failed to configure default CS settings (err %d)\n", err);
 	}
 
 	err = bt_conn_set_security(connection, BT_SECURITY_L2);
 	if (err) {
-		printk("Failed to encrypt connection (err %d)\n", err);
+		LOG_ERR("Failed to encrypt connection (err %d)\n", err);
 		return err;
 	}
 
@@ -38,7 +41,7 @@ int setup_initiator(void){
 
 	err = bt_le_cs_read_remote_supported_capabilities(connection);
 	if (err) {
-		printk("Failed to exchange CS capabilities (err %d)\n", err);
+		LOG_ERR("Failed to exchange CS capabilities (err %d)\n", err);
 		return err;
 	}
 
@@ -66,7 +69,7 @@ int setup_initiator(void){
 	err = bt_le_cs_create_config(connection, &config_params,
 				     BT_LE_CS_CREATE_CONFIG_CONTEXT_LOCAL_AND_REMOTE);
 	if (err) {
-		printk("Failed to create CS config (err %d)\n", err);
+		LOG_ERR("Failed to create CS config (err %d)\n", err);
 		return err;
 	}
 
@@ -74,7 +77,7 @@ int setup_initiator(void){
 
 	err = bt_le_cs_security_enable(connection);
 	if (err) {
-		printk("Failed to start CS Security (err %d)\n", err);
+		LOG_ERR("Failed to start CS Security (err %d)\n", err);
 		return err;
 	}
 
@@ -98,7 +101,7 @@ int setup_initiator(void){
 
 	err = bt_le_cs_set_procedure_parameters(connection, &procedure_params);
 	if (err) {
-		printk("Failed to set procedure parameters (err %d)\n", err);
+		LOG_ERR("Failed to set procedure parameters (err %d)\n", err);
 		return err;
 	}
 
@@ -109,7 +112,7 @@ int setup_initiator(void){
 
 	err = bt_le_cs_procedure_enable(connection, &params);
 	if (err) {
-		printk("Failed to enable CS procedures (err %d)\n", err);
+		LOG_ERR("Failed to enable CS procedures (err %d)\n", err);
 		return err;
 	}
 
@@ -122,9 +125,9 @@ int act_as_initiator(void){
 	struct k_sem* sem_data_received = get_sem_data_received();
 
 	while (true) {
-		printk("before sem_done\n");
+		LOG_INF("before sem_done\n");
 		k_sem_take(sem_procedure_done, K_FOREVER);
-		printk("after sem_done\n");
+		LOG_INF("after sem_done\n");
 		k_sem_take(sem_data_received, K_FOREVER);
 		call_estimate_distance();
 	}

@@ -15,24 +15,26 @@
 #include "bluetooth/bluetooth_global.h"
 #include "bluetooth/bluetooth_reflector.h"
 #include "bluetooth/bluetooth_initiator.h"
+#include <zephyr/logging/log.h>
 
-static bool is_initiator = false; 
+static bool is_initiator = true; 
 static struct bt_conn *connection;
+LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
 
 int main(void)
 {
 	int err;
 
-	printk("Starting Channel Sounding Demo\n");
+	LOG_INF("Starting Channel Sounding Demo");
 
 	err = ble_init();
 
     if (is_initiator)
     {
-        printk("Initiator\n");
+        LOG_INF("Initiator");
         err = setup_initiator();
         if (err) {
-            printk("Failed to setup initiator (err %d)\n", err);
+            LOG_ERR("Failed to setup initiator (err %d)", err);
             return err;
         }
 
@@ -40,10 +42,10 @@ int main(void)
     }
     else
     {
-        printk("Reflector\n");
+        LOG_INF("Reflector");
         err = setup_reflector();
         if (err) {
-            printk("Failed in setup reflector (err %d)\n", err);
+            LOG_ERR("Failed in setup reflector (err %d)", err);
         }
 
         connection = get_bt_connection();
