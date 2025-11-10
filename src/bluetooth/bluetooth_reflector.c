@@ -23,7 +23,7 @@ static uint8_t discover_func(struct bt_conn *conn, const struct bt_gatt_attr *at
 	struct bt_gatt_chrc *chrc;
 	char str[BT_UUID_STR_LEN];
 
-	LOG_INF("Discovery: attr %p\n", attr);
+	LOG_INF("Discovery: attr %p", attr);
 
 	if (!attr) {
 		return BT_GATT_ITER_STOP;
@@ -32,12 +32,12 @@ static uint8_t discover_func(struct bt_conn *conn, const struct bt_gatt_attr *at
 	chrc = (struct bt_gatt_chrc *)attr->user_data;
 
 	bt_uuid_to_str(chrc->uuid, str, sizeof(str));
-	LOG_INF("UUID %s\n", str);
+	LOG_INF("UUID %s", str);
 
 	if (!bt_uuid_cmp(chrc->uuid, &step_data_char_uuid.uuid)) {
 		step_data_attr_handle = chrc->value_handle;
 
-		LOG_INF("Found expected UUID\n");
+		LOG_INF("Found expected UUID");
 
 		k_sem_give(&sem_discovered);
 	}
@@ -47,9 +47,9 @@ static uint8_t discover_func(struct bt_conn *conn, const struct bt_gatt_attr *at
 
 static void write_func(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_params *params)
 {
-	LOG_INF("sem_written before\n");
+	LOG_INF("sem_written before");
 	if (err) {
-		LOG_ERR("Write failed (err %d)\n", err);
+		LOG_ERR("Write failed (err %d)", err);
 
 		return;
 	}
@@ -67,29 +67,29 @@ int setup_reflector(void)
 	k_sem_take(sem_connected, K_FOREVER);
 
 	connection = get_bt_connection();
-	LOG_INF("After sem connected \n");
+	LOG_INF("After sem connected ");
 
 	int err = get_bt_le_cs_default_settings(true, connection);
 	if (err) {
-		LOG_ERR("Failed to configure default CS settings (err %d)\n", err);
+		LOG_ERR("Failed to configure default CS settings (err %d)", err);
 		return err;
 	}
 
 	k_sem_take(sem_config_created, K_FOREVER);
-	LOG_INF("After sem_config_created \n");
+	LOG_INF("After sem_config_created ");
 
 	discover_params = get_discover_params();
 
 	err = bt_gatt_discover(connection, discover_params);
 	if (err) {
-		LOG_ERR("Discovery failed (err %d)\n", err);
+		LOG_ERR("Discovery failed (err %d)", err);
 		return err;
 	}
 
 	err = k_sem_take(&sem_discovered, K_SECONDS(10));
-	LOG_INF("After sem_discovered \n");
+	LOG_INF("After sem_discovered ");
 	if (err) {
-		LOG_ERR("Timed out during GATT discovery\n");
+		LOG_ERR("Timed out during GATT discovery");
 		return err;
 	}
 	return 0;
@@ -119,9 +119,9 @@ int act_as_reflector(struct bt_conn* connection){
 	int err;
 	struct k_sem* sem_procedure_done = get_sem_procedure_done();
 	while (true) {
-		LOG_INF("sem_procedure_done before\n");
+		LOG_INF("sem_procedure_done before");
 		k_sem_take(sem_procedure_done, K_FOREVER);
-		LOG_INF("sem_procedure_done after\n");
+		LOG_INF("sem_procedure_done after");
 		uint8_t* latest_local_steps = get_latest_local_steps();
 
 		write_params.func = write_func;
@@ -132,13 +132,13 @@ int act_as_reflector(struct bt_conn* connection){
 
 		err = bt_gatt_write(connection, &write_params);
 		if (err) {
-			LOG_ERR("Write failed (err %d)\n", err);
+			LOG_ERR("Write failed (err %d)", err);
 			return 0;
 		}
 
 		err = k_sem_take(&sem_written, K_SECONDS(10));
 		if (err) {
-			LOG_ERR("Timed out during GATT write\n");
+			LOG_ERR("Timed out during GATT write");
 			return 0;
 		}
 	}

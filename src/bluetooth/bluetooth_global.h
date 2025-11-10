@@ -15,6 +15,7 @@
     
 int ble_init(void);
 
+void is_initiator(bool is_init);
 int register_step_data_gatt_service(void);
 struct bt_conn* get_bt_connection(void);
 
