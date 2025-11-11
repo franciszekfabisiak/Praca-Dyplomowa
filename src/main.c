@@ -17,7 +17,7 @@
 #include "bluetooth/bluetooth_initiator.h"
 #include <zephyr/logging/log.h>
 
-static bool initiator = true; 
+static bool initiator = false; 
 static struct bt_conn *connection;
 LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -30,43 +30,35 @@ int main(void)
 	err = ble_init();
     is_initiator(initiator);
 
-    if (initiator)
-    {
-        LOG_INF("Initiator");
-        err = setup_initiator();
-        if (err) {
-            LOG_ERR("Failed to setup initiator (err %d)", err);
-            return err;
+    while(1){
+        if (initiator)
+        {
+            LOG_INF("Initiator");
+            err = setup_initiator();
+            if (err) {
+                LOG_ERR("Failed to setup initiator (err %d)", err);
+                return err;
+            }
+
+            err = act_as_initiator();
         }
+        else
+        {
+            LOG_INF("Reflector");
+            err = setup_reflector();
+            if (err) {
+                LOG_ERR("Failed in setup reflector (err %d)", err);
+            }
 
-	    err = act_as_initiator();
-    }
-    else
-    {
-        LOG_INF("Reflector");
-        err = setup_reflector();
-        if (err) {
-            LOG_ERR("Failed in setup reflector (err %d)", err);
+            connection = get_bt_connection();
+
+            err = act_as_reflector(connection);
+            bt_conn_disconnect(connection, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
         }
-
-        connection = get_bt_connection();
-
-        err = act_as_reflector(connection);
+        initiator = !initiator;
+        is_initiator(initiator);
+        // bt_unpair(BT_ID_DEFAULT, BT_ADDR_LE_ANY);
+        k_sleep(K_SECONDS(5));
     }
-    is_initiator(false);
-    connection = get_bt_connection();
-    bt_conn_disconnect(connection, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
-    bt_unpair(BT_ID_DEFAULT, BT_ADDR_LE_ANY);
-
-    LOG_INF("Reflector");
-    err = setup_reflector();
-    if (err) {
-        LOG_ERR("Failed in setup reflector (err %d)", err);
-    }
-
-    connection = get_bt_connection();
-
-    err = act_as_reflector(connection);
-
 	return 0;
 }

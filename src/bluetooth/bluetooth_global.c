@@ -96,10 +96,7 @@ int register_step_data_gatt_service(void){
 }
 
 struct bt_conn* get_bt_connection(void){
-    if (connection) {
-        return bt_conn_ref(connection);
-    }
-    return NULL;
+    return connection;
 }
 
 struct k_sem* get_sem_acl_encryption_enabled(void)
@@ -150,8 +147,8 @@ int ble_init(void){
 		return err;
 	}
 
-	err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_FAST_INT_MIN_1,
-					      BT_GAP_ADV_FAST_INT_MAX_1, NULL),
+	err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_SLOW_INT_MIN,
+					      BT_GAP_ADV_SLOW_INT_MAX, NULL),
 			      ad, ARRAY_SIZE(ad), NULL, 0);
 	if (err) {
 		LOG_ERR("Advertising failed to start (err %d)", err);
@@ -251,6 +248,16 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 	}
 
 	k_sem_give(&sem_connected);
+
+	if(initiator)
+	{
+		err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_SLOW_INT_MIN,
+				BT_GAP_ADV_SLOW_INT_MAX, NULL),
+			    ad, ARRAY_SIZE(ad), NULL, 0);
+		if (err) {
+			LOG_ERR("Advertising failed to start (err %d)", err);
+		}
+	}
 }
 
 static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
@@ -259,6 +266,8 @@ static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
 
 	bt_conn_unref(conn);
 	connection = NULL;
+	
+	bt_unpair(BT_ID_DEFAULT, BT_ADDR_LE_ANY);
 }
 
 static void security_changed_cb(struct bt_conn *conn, bt_security_t level, enum bt_security_err err)
@@ -268,8 +277,8 @@ static void security_changed_cb(struct bt_conn *conn, bt_security_t level, enum 
 	} else {
 		LOG_INF("Security changed to level %d.", level);
 	}
-
-	k_sem_give(&sem_acl_encryption_enabled);
+	if(initiator)
+		k_sem_give(&sem_acl_encryption_enabled);
 }
 
 static void remote_capabilities_cb(struct bt_conn *conn,
@@ -280,7 +289,8 @@ static void remote_capabilities_cb(struct bt_conn *conn,
 
 	if (status == BT_HCI_ERR_SUCCESS) {
 		LOG_INF("CS capability exchange completed.");
-		k_sem_give(&sem_remote_capabilities_obtained);
+		if(initiator)
+			k_sem_give(&sem_remote_capabilities_obtained);
 	} else {
 		LOG_ERR("CS capability exchange failed. (HCI status 0x%02x)", status);
 	}
@@ -302,7 +312,8 @@ static void security_enable_cb(struct bt_conn *conn, uint8_t status)
 {
 	if (status == BT_HCI_ERR_SUCCESS) {
 		LOG_INF("CS security enabled.");
-		k_sem_give(&sem_cs_security_enabled);
+		if(initiator)
+			k_sem_give(&sem_cs_security_enabled);
 	} else {
 		LOG_ERR("CS security enable failed. (HCI status 0x%02x)", status);
 	}

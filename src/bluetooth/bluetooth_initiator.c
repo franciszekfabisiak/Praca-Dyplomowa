@@ -130,7 +130,7 @@ int act_as_initiator(void){
 		LOG_INF("after sem_done");
 		k_sem_take(sem_data_received, K_FOREVER);
 		call_estimate_distance();
-		// return 0;
+		return 0;
 	}
 	return 0;
 }

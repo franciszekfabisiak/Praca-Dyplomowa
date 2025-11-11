@@ -141,5 +141,6 @@ int act_as_reflector(struct bt_conn* connection){
 			LOG_ERR("Timed out during GATT write");
 			return 0;
 		}
+		return 0;
 	}
 }
