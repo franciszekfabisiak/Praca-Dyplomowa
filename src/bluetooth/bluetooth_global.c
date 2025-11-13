@@ -1,12 +1,13 @@
 #include "bluetooth_global.h"
 #include <zephyr/logging/log.h>
 #include "common.h"
+#include "bluetooth_device_control.h"
 
 static struct bt_uuid_128 step_data_char_uuid =
 	BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x87654321, 0x4567, 0x2389, 0x1254, 0xf67f9fedcba8));
 static const struct bt_uuid_128 step_data_svc_uuid =
 	BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x87654321, 0x4567, 0x2389, 0x1254, 0xf67f9fedcba9));
-	
+
 static const char sample_str[] = "CS Sample";
 static const struct bt_data ad[] = {
 	BT_DATA(BT_DATA_NAME_COMPLETE, "CS Sample", sizeof(sample_str) - 1),
@@ -157,7 +158,13 @@ int ble_init(void){
 
 	err = register_step_data_gatt_service();
 	if (err) {
-		LOG_ERR("bt_gatt_service_register() returned err %d", err);
+		LOG_ERR("register_step_data_gatt_service returned err %d", err);
+		return 0;
+	}
+
+	err = register_logic_gatt_service();
+	if (err) {
+		LOG_ERR("register_logic_gatt_service returned err %d", err);
 		return 0;
 	}
 
@@ -188,6 +195,17 @@ int get_bt_le_cs_default_settings(bool is_reflector, struct bt_conn *connection)
 
 int start_bt_scan(void){
 	return bt_le_scan_start(BT_LE_SCAN_ACTIVE_CONTINUOUS, device_found);
+}
+
+int start_adv(void){
+	int err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_SLOW_INT_MIN,
+					      BT_GAP_ADV_SLOW_INT_MAX, NULL),
+			      ad, ARRAY_SIZE(ad), NULL, 0);
+	if (err) {
+		LOG_ERR("Advertising failed to start (err %d)", err);
+		return err;
+	}
+	return 0;
 }
 
 // private functions
@@ -251,12 +269,7 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 
 	if(initiator)
 	{
-		err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_SLOW_INT_MIN,
-				BT_GAP_ADV_SLOW_INT_MAX, NULL),
-			    ad, ARRAY_SIZE(ad), NULL, 0);
-		if (err) {
-			LOG_ERR("Advertising failed to start (err %d)", err);
-		}
+		send_message(MESSAGE_START_ADV, 0);
 	}
 }
 

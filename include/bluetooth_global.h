@@ -7,6 +7,7 @@
 #include <zephyr/bluetooth/att.h>
 #include <zephyr/bluetooth/gatt.h>
 #include "distance_estimation.h"
+#include "logic_main.h"
 
 #define CS_CONFIG_ID     0
 #define NUM_MODE_0_STEPS 1
@@ -30,5 +31,6 @@ uint8_t* get_latest_local_steps(void);
 void call_estimate_distance(void);
 int get_bt_le_cs_default_settings(bool is_reflector, struct bt_conn *connection);
 int start_bt_scan(void);
+int start_adv(void);
 
 #endif

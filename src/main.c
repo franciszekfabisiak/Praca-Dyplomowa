@@ -11,20 +11,20 @@
 #include <zephyr/bluetooth/att.h>
 #include <zephyr/bluetooth/gatt.h>
 #include "distance_estimation.h"
-#include "common.h"
-#include "bluetooth/bluetooth_global.h"
-#include "bluetooth/bluetooth_reflector.h"
-#include "bluetooth/bluetooth_initiator.h"
+#include "bluetooth_global.h"
+#include "bluetooth_reflector.h"
+#include "bluetooth_initiator.h"
 #include <zephyr/logging/log.h>
+#include "logic_main.h"
 
-static bool initiator = false; 
+static bool initiator = true; 
 static struct bt_conn *connection;
 LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
 
 int main(void)
 {
 	int err;
-
+    logic_thread_init();
 	LOG_INF("Starting Channel Sounding Demo");
 
 	err = ble_init();

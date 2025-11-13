@@ -5,8 +5,6 @@
 
 LOG_MODULE_REGISTER(bt_initiator, CONFIG_LOG_DEFAULT_LEVEL);
 
-// static struct bt_conn *connection;
-
 int setup_initiator(void){
 
 	struct k_sem* sem_acl_encryption_enabled = get_sem_acl_encryption_enabled();
