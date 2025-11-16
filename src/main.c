@@ -16,10 +16,14 @@
 #include "bluetooth_initiator.h"
 #include <zephyr/logging/log.h>
 #include "logic_main.h"
+#include "bluetooth_device_control.h"
 
-static bool initiator = true; 
+static bool initiator = false; 
 static struct bt_conn *connection;
 LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
+
+// #if (IS_ENABLED(CONFIG_ANCHOR))
+// #endif
 
 int main(void)
 {
@@ -46,19 +50,28 @@ int main(void)
         {
             LOG_INF("Reflector");
             err = setup_reflector();
-            if (err) {
+            if (err) 
                 LOG_ERR("Failed in setup reflector (err %d)", err);
-            }
 
             connection = get_bt_connection();
+
+            err = discover_logic_gatt_service(connection);
+            if (err) 
+                LOG_ERR("Could not discover logic (err %d)", err);
+            uint8_t data = 48;
+            err = logic_gatt_write(connection, data);
+            if (err) 
+                LOG_ERR("Could not write to logic (err %d)", err);
+
+            k_sleep(K_SECONDS(10));
 
             err = act_as_reflector(connection);
             bt_conn_disconnect(connection, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
         }
         initiator = !initiator;
         is_initiator(initiator);
-        // bt_unpair(BT_ID_DEFAULT, BT_ADDR_LE_ANY);
         k_sleep(K_SECONDS(5));
     }
 	return 0;
 }
+// bt_unpair(BT_ID_DEFAULT, BT_ADDR_LE_ANY);

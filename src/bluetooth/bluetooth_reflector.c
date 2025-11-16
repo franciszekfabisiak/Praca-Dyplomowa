@@ -60,7 +60,6 @@ static void write_func(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_p
 // public functions
 int setup_reflector(void)
 {
-	struct bt_gatt_discover_params* discover_params;
 	struct k_sem* sem_connected = get_sem_connected();
 	struct k_sem* sem_config_created = get_sem_config_created();
 	
@@ -77,21 +76,6 @@ int setup_reflector(void)
 
 	k_sem_take(sem_config_created, K_FOREVER);
 	LOG_INF("After sem_config_created ");
-
-	discover_params = get_discover_params();
-
-	err = bt_gatt_discover(connection, discover_params);
-	if (err) {
-		LOG_ERR("Discovery failed (err %d)", err);
-		return err;
-	}
-
-	err = k_sem_take(&sem_discovered, K_SECONDS(10));
-	LOG_INF("After sem_discovered ");
-	if (err) {
-		LOG_ERR("Timed out during GATT discovery");
-		return err;
-	}
 	return 0;
 }
 
@@ -118,6 +102,23 @@ struct bt_gatt_discover_params* get_discover_params(void){
 int act_as_reflector(struct bt_conn* connection){
 	int err;
 	struct k_sem* sem_procedure_done = get_sem_procedure_done();
+	struct bt_gatt_discover_params* discover_params;
+
+	discover_params = get_discover_params();
+
+	err = bt_gatt_discover(connection, discover_params);
+	if (err) {
+		LOG_ERR("Discovery failed (err %d)", err);
+		return err;
+	}
+
+	err = k_sem_take(&sem_discovered, K_SECONDS(10));
+	LOG_INF("After sem_discovered ");
+	if (err) {
+		LOG_ERR("Timed out during GATT discovery");
+		return err;
+	}
+
 	while (true) {
 		LOG_INF("sem_procedure_done before");
 		k_sem_take(sem_procedure_done, K_FOREVER);

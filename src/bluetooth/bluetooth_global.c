@@ -148,9 +148,7 @@ int ble_init(void){
 		return err;
 	}
 
-	err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_SLOW_INT_MIN,
-					      BT_GAP_ADV_SLOW_INT_MAX, NULL),
-			      ad, ARRAY_SIZE(ad), NULL, 0);
+	err = start_adv();
 	if (err) {
 		LOG_ERR("Advertising failed to start (err %d)", err);
 		return err;
@@ -349,7 +347,6 @@ static void procedure_enable_cb(struct bt_conn *conn,
 
 static void subevent_result_cb(struct bt_conn *conn, struct bt_conn_le_cs_subevent_result *result)
 {
-	LOG_INF("abort? %d", result->header.abort_step);
 	LOG_INF("steps %d", result->header.num_steps_reported);
 	LOG_INF("paths %d", result->header.num_antenna_paths);
 	
