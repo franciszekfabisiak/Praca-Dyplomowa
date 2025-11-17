@@ -40,14 +40,6 @@ int main(void)
         err = act_as_anchor();
 
     if(!anchor){
-        	// struct k_sem* sem_connected = get_sem_connected();
-            
-            // k_sem_take(sem_connected, K_FOREVER);
-            // LOG_INF("Reflector");
-            // err = setup_reflector();
-            // if (err) 
-            //     LOG_ERR("Failed in setup reflector (err %d)", err);
-
         while(1){
             k_sleep(K_SECONDS(10));
         }

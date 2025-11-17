@@ -4,10 +4,10 @@
 #include "common.h"
 #include "bluetooth_device_control.h"
 
-LOG_MODULE_REGISTER(bt_initiator, CONFIG_LOG_DEFAULT_LEVEL);
+LOG_MODULE_REGISTER(bt_initiator);
 
-int setup_initiator(bool scan){
-
+int setup_initiator(bool scan)
+{
 	int err;
 	struct k_sem* sem_acl_encryption_enabled = get_sem_acl_encryption_enabled();
 	struct k_sem* sem_remote_capabilities_obtained = get_sem_remote_capabilities_obtained();
@@ -117,8 +117,8 @@ int setup_initiator(bool scan){
 	return 0;
 }
 
-int act_as_initiator(void){
-
+int act_as_initiator(void)
+{
 	struct k_sem* sem_procedure_done = get_sem_procedure_done();
 	struct k_sem* sem_data_received = get_sem_data_received();
 
@@ -128,7 +128,7 @@ int act_as_initiator(void){
 		LOG_INF("after sem_done");
 		k_sem_take(sem_data_received, K_FOREVER);
 		call_estimate_distance();
-		logic_gatt_notify(1);
+		// logic_gatt_notify(1);
 	}
 	return 0;
 }

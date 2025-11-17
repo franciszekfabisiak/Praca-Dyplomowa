@@ -99,7 +99,8 @@ struct bt_gatt_discover_params* get_discover_params(void){
 	return &discover_params;
 }
 
-int act_as_reflector(struct bt_conn* connection){
+int act_as_reflector(struct bt_conn* connection)
+{
 	int err;
 	struct k_sem* sem_procedure_done = get_sem_procedure_done();
 	struct bt_gatt_discover_params* discover_params;

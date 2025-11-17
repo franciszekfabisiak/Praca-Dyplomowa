@@ -65,13 +65,15 @@ static void logic_thread(void *, void *,void *)
     }
 }
 
-static void start_adv_event(uint8_t value){
+static void start_adv_event(uint8_t value)
+{
     int err = start_adv();
     if(err)
         LOG_INF("adv failed in msq queue %d", err);
 }
 
-static void setup_device(uint8_t value){
+static void setup_device(uint8_t value)
+{
     int err;
     switch (value)
     {

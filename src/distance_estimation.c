@@ -7,6 +7,7 @@
 #include <math.h>
 #include <zephyr/bluetooth/cs.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/logging/log.h>
 #include "distance_estimation.h"
 
 #define CS_FREQUENCY_MHZ(ch)    (2402u + 1u * (ch))
@@ -15,6 +16,8 @@
 #define SPEED_OF_LIGHT_NM_PER_S (SPEED_OF_LIGHT_M_PER_S / 1000000000.0f)
 #define PI                      3.14159265358979323846f
 #define MAX_NUM_SAMPLES         256
+
+LOG_MODULE_REGISTER(estimator);
 
 struct iq_sample_and_channel {
 	bool failed;
@@ -289,17 +292,17 @@ void estimate_distance(uint8_t *local_steps, uint16_t local_steps_len, uint8_t *
 		estimate_distance_using_time_of_flight(context.mode_1_data_index);
 
 	if (rtt_based_distance == 0.0f && phase_slope_based_distance == 0.0f) {
-		printk("A reliable distance estimate could not be computed.\n");
+		LOG_INF("A reliable distance estimate could not be computed.");
 	} else {
-		printk("Estimated distance to reflector:\n");
+		LOG_INF("Estimated distance to reflector:");
 	}
 
 	if (rtt_based_distance != 0.0f) {
-		printk("- Round-Trip Timing method: %f meters (derived from %d samples)\n",
+		LOG_INF("- Round-Trip Timing method: %f meters (derived from %d samples)",
 		       (double)rtt_based_distance, context.mode_1_data_index);
 	}
 	if (phase_slope_based_distance != 0.0f) {
-		printk("- Phase-Based Ranging method: %f meters (derived from %d samples)\n",
+		LOG_INF("- Phase-Based Ranging method: %f meters (derived from %d samples)",
 		       (double)phase_slope_based_distance, context.mode_2_data_index);
 	}
 }
