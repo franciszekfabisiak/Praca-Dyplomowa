@@ -4,8 +4,8 @@
 static const struct bt_uuid_128 logic_svc_uuid =
 	BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x23d1bcea, 0x5f78, 0x2315, 0xdeef, 0x121201000000));
 
-static const struct bt_uuid_128 control_char_uuid =
-	BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x23d1bcea, 0x5f78, 0x2315, 0xdeef, 0x121201000001));
+// static const struct bt_uuid_128 control_char_uuid =
+// 	BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x23d1bcea, 0x5f78, 0x2315, 0xdeef, 0x121201000001));
 
 static const struct bt_uuid_128 logic_char_uuid =
 	BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x23d1bcea, 0x5f78, 0x2315, 0xdeef, 0x121201000002));
@@ -25,15 +25,18 @@ static uint8_t discover_logic(struct bt_conn *conn, const struct bt_gatt_attr *a
 			struct bt_gatt_discover_params *params);
 
 static void write_logic(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_params *params);
+
+static void control_ccc_cfg(const struct bt_gatt_attr *attr, uint16_t value);
 //GATT structures
 static struct bt_gatt_attr logic_gatt_attributes[] = {
 	BT_GATT_PRIMARY_SERVICE(&logic_svc_uuid),
-	BT_GATT_CHARACTERISTIC(&control_char_uuid.uuid, BT_GATT_CHRC_WRITE,
+	// BT_GATT_CHARACTERISTIC(&control_char_uuid.uuid, BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY,
+	// 		       BT_GATT_PERM_WRITE | BT_GATT_PERM_PREPARE_WRITE, NULL,
+	// 		       choose_mode, NULL),
+	BT_GATT_CHARACTERISTIC(&logic_char_uuid.uuid, BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY,
 			       BT_GATT_PERM_WRITE | BT_GATT_PERM_PREPARE_WRITE, NULL,
 			       choose_mode, NULL),
-	BT_GATT_CHARACTERISTIC(&logic_char_uuid.uuid, BT_GATT_CHRC_WRITE,
-			       BT_GATT_PERM_WRITE | BT_GATT_PERM_PREPARE_WRITE, NULL,
-			       choose_mode, NULL),
+	BT_GATT_CCC(control_ccc_cfg, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 };
 
 static struct bt_gatt_discover_params logic_discover_params = {
@@ -97,6 +100,20 @@ int logic_gatt_write(struct bt_conn *conn, uint8_t data)
     return 0;
 }
 
+int logic_gatt_notify(uint8_t value)
+{
+    const struct bt_gatt_attr *attr = &logic_gatt_attributes[2];
+
+    int err = bt_gatt_notify(NULL, attr, &value, sizeof(value));
+    if (err) {
+        LOG_ERR("Notify failed (err %d)", err);
+        return err;
+    }
+
+    LOG_INF("Notify sent: %u", value);
+    return 0;
+}
+
 // private functions
 static ssize_t choose_mode(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 				const void *buf, uint16_t len, uint16_t offset, uint8_t flags)
@@ -153,4 +170,11 @@ static void write_logic(struct bt_conn *conn, uint8_t err, struct bt_gatt_write_
 	}
 
 	k_sem_give(&sem_written);
+}
+
+static void control_ccc_cfg(const struct bt_gatt_attr *attr, uint16_t value)
+{
+    bool notif_enabled = value == BT_GATT_CCC_NOTIFY;
+    printk("Control characteristic notifications %s\n",
+           notif_enabled ? "enabled" : "disabled");
 }

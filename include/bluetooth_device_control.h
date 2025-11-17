@@ -21,5 +21,6 @@ enum device_setting
 int register_logic_gatt_service(void);
 int discover_logic_gatt_service(struct bt_conn* conn);
 int logic_gatt_write(struct bt_conn *conn, uint8_t data);
+int logic_gatt_notify(uint8_t value);
 
 #endif

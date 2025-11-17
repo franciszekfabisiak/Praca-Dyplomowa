@@ -2,6 +2,7 @@
 #include "bluetooth_global.h"
 #include <zephyr/logging/log.h>
 #include "common.h"
+#include "bluetooth_device_control.h"
 
 LOG_MODULE_REGISTER(bt_initiator, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -127,6 +128,7 @@ int act_as_initiator(void){
 		LOG_INF("after sem_done");
 		k_sem_take(sem_data_received, K_FOREVER);
 		call_estimate_distance();
+		logic_gatt_notify(1);
 	}
 	return 0;
 }
