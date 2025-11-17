@@ -5,23 +5,22 @@
 
 LOG_MODULE_REGISTER(bt_initiator, CONFIG_LOG_DEFAULT_LEVEL);
 
-int setup_initiator(void){
+int setup_initiator(bool scan){
 
+	int err;
 	struct k_sem* sem_acl_encryption_enabled = get_sem_acl_encryption_enabled();
 	struct k_sem* sem_remote_capabilities_obtained = get_sem_remote_capabilities_obtained();
 	struct k_sem* sem_config_created = get_sem_config_created();
 	struct k_sem* sem_cs_security_enabled = get_sem_cs_security_enabled();
-	struct k_sem* sem_connected = get_sem_connected();
 
-	int err = start_bt_scan();
-	if (err) {
-		LOG_ERR("Scanning failed to start (err %d)", err);
-		return 0;
+	if(scan) {
+		err = start_bt_scan();
+		if (err) {
+			LOG_ERR("Failed to start scanning (err %d)", err);
+		}
+		LOG_INF("After sem connected");
 	}
-
-	k_sem_take(sem_connected, K_FOREVER);
-	bt_le_scan_stop();
-	LOG_INF("After sem connected ");
+	
 	struct bt_conn* connection = get_bt_connection();
 
 	err = get_bt_le_cs_default_settings(false, connection);
@@ -128,7 +127,6 @@ int act_as_initiator(void){
 		LOG_INF("after sem_done");
 		k_sem_take(sem_data_received, K_FOREVER);
 		call_estimate_distance();
-		return 0;
 	}
 	return 0;
 }

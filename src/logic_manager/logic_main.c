@@ -4,6 +4,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/bluetooth/bluetooth.h>
 #include "bluetooth_global.h"
+#include "bluetooth_device_control.h"
+#include "bluetooth_reflector.h"
 
 static struct k_thread logic_thread_data;
 static k_tid_t logic_thread_id;
@@ -11,11 +13,13 @@ static K_THREAD_STACK_DEFINE(logic_thread_stack, LOGIC_THREAD_STACK_SIZE);
 
 static void logic_thread(void *, void *,void *);
 static void start_adv_event(uint8_t value);
+static void setup_device(uint8_t value);
 
 static logic_cb logic_map[MESSAGE_COUNT] =
     {
         [MESSAGE_NONE] = NULL,
-        [MESSAGE_START_ADV] = start_adv_event
+        [MESSAGE_START_ADV] = start_adv_event,
+        [MESSAGE_SETUP_DEVICE] = setup_device
     };
 
 
@@ -65,4 +69,25 @@ static void start_adv_event(uint8_t value){
     int err = start_adv();
     if(err)
         LOG_INF("adv failed in msq queue %d", err);
+}
+
+static void setup_device(uint8_t value){
+    int err;
+    switch (value)
+    {
+    case SETTING_REFLECTOR:
+        err = setup_reflector();
+        struct bt_conn* connection = get_bt_connection();
+        err = act_as_reflector(connection);
+        break;
+    case SETTING_REFLECTOR_DELAY:
+        /* code */
+        break;
+    case SETTING_INITIATOR:
+        /* code */
+        break;
+
+    default:
+        break;
+    }
 }

@@ -77,10 +77,11 @@ int discover_logic_gatt_service(struct bt_conn* conn)
 
 int logic_gatt_write(struct bt_conn *conn, uint8_t data)
 {
-	uint8_t data2 = 111;
     logic_write_params.handle = logic_attr_handle;
-    logic_write_params.data = &data2;
+    logic_write_params.data = &data;
     logic_write_params.offset = 0;
+	logic_write_params.func = write_logic;
+	logic_write_params.length = 10;
 
     int err = bt_gatt_write(conn, &logic_write_params);
     if (err) {
@@ -109,6 +110,7 @@ static ssize_t choose_mode(struct bt_conn *conn, const struct bt_gatt_attr *attr
     data[len] = '\0';
 
     LOG_INF("Received: %d", data[0]);
+	send_message(MESSAGE_SETUP_DEVICE, data[0]);
 
     return len;
 }

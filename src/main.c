@@ -17,61 +17,40 @@
 #include <zephyr/logging/log.h>
 #include "logic_main.h"
 #include "bluetooth_device_control.h"
+#include "bluetooth_anchor.h"
 
-static bool initiator = false; 
-static struct bt_conn *connection;
+static bool anchor = true; 
 LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
-
-// #if (IS_ENABLED(CONFIG_ANCHOR))
-// #endif
 
 int main(void)
 {
 	int err;
+
     logic_thread_init();
+    mark_as_anchor(anchor);
 	LOG_INF("Starting Channel Sounding Demo");
 
 	err = ble_init();
-    is_initiator(initiator);
+    if (err) 
+        LOG_ERR("Failed in ble init (err %d)", err);
 
-    while(1){
-        if (initiator)
-        {
-            LOG_INF("Initiator");
-            err = setup_initiator();
-            if (err) {
-                LOG_ERR("Failed to setup initiator (err %d)", err);
-                return err;
-            }
+    is_initiator(anchor);
 
-            err = act_as_initiator();
-        }
-        else
-        {
-            LOG_INF("Reflector");
-            err = setup_reflector();
-            if (err) 
-                LOG_ERR("Failed in setup reflector (err %d)", err);
+    if(anchor)
+        err = act_as_anchor();
 
-            connection = get_bt_connection();
+    if(!anchor){
+        	// struct k_sem* sem_connected = get_sem_connected();
+            
+            // k_sem_take(sem_connected, K_FOREVER);
+            // LOG_INF("Reflector");
+            // err = setup_reflector();
+            // if (err) 
+            //     LOG_ERR("Failed in setup reflector (err %d)", err);
 
-            err = discover_logic_gatt_service(connection);
-            if (err) 
-                LOG_ERR("Could not discover logic (err %d)", err);
-            uint8_t data = 48;
-            err = logic_gatt_write(connection, data);
-            if (err) 
-                LOG_ERR("Could not write to logic (err %d)", err);
-
+        while(1){
             k_sleep(K_SECONDS(10));
-
-            err = act_as_reflector(connection);
-            bt_conn_disconnect(connection, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
         }
-        initiator = !initiator;
-        is_initiator(initiator);
-        k_sleep(K_SECONDS(5));
     }
-	return 0;
 }
 // bt_unpair(BT_ID_DEFAULT, BT_ADDR_LE_ANY);

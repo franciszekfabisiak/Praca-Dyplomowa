@@ -12,8 +12,12 @@ static const char sample_str[] = "CS Sample";
 static const struct bt_data ad[] = {
 	BT_DATA(BT_DATA_NAME_COMPLETE, "CS Sample", sizeof(sample_str) - 1),
 };
+static const struct bt_data anchor_ad[] = {
+	BT_DATA(BT_DATA_NAME_COMPLETE, "Anchor", 7 - 1),
+};
 
 static bool initiator = true;
+static bool anchor = false;
 
 static const struct bt_le_cs_set_default_settings_param default_settings_reflector = {
 	.enable_initiator_role = false,
@@ -192,13 +196,37 @@ int get_bt_le_cs_default_settings(bool is_reflector, struct bt_conn *connection)
 }
 
 int start_bt_scan(void){
-	return bt_le_scan_start(BT_LE_SCAN_ACTIVE_CONTINUOUS, device_found);
+	int err =  bt_le_scan_start(BT_LE_SCAN_ACTIVE_CONTINUOUS, device_found);
+	if (err) {
+		LOG_ERR("Scanning failed to start (err %d)", err);
+		return err;
+	}
+
+	k_sem_take(&sem_connected, K_FOREVER);
+	err = bt_le_scan_stop();
+	if(err) {
+		LOG_ERR("Scanning stopped with (err %d)", err);
+		return err;
+	}
+	return 0;
 }
 
 int start_adv(void){
-	int err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_SLOW_INT_MIN,
-					      BT_GAP_ADV_SLOW_INT_MAX, NULL),
-			      ad, ARRAY_SIZE(ad), NULL, 0);
+
+	int err;
+	if(anchor)
+	{
+		err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_SLOW_INT_MIN,
+							BT_GAP_ADV_SLOW_INT_MAX, NULL),
+					anchor_ad, ARRAY_SIZE(anchor_ad), NULL, 0);
+	}
+	else
+	{
+		err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONN, BT_GAP_ADV_SLOW_INT_MIN,
+					BT_GAP_ADV_SLOW_INT_MAX, NULL),
+			ad, ARRAY_SIZE(ad), NULL, 0);
+	}
+	
 	if (err) {
 		LOG_ERR("Advertising failed to start (err %d)", err);
 		return err;
@@ -206,6 +234,10 @@ int start_adv(void){
 	return 0;
 }
 
+void mark_as_anchor(bool is_anchor)
+{
+	anchor = is_anchor;
+}
 // private functions
 static ssize_t on_attr_write_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 				const void *buf, uint16_t len, uint16_t offset, uint8_t flags)

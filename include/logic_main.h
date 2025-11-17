@@ -10,6 +10,7 @@ enum message_type
 {
     MESSAGE_NONE = 0,
     MESSAGE_START_ADV,
+    MESSAGE_SETUP_DEVICE,
     MESSAGE_COUNT
 
 };

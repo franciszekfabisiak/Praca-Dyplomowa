@@ -9,6 +9,15 @@
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/sys/byteorder.h>
 
+enum device_setting
+{
+    SETTING_REFLECTOR = 0,
+    SETTING_REFLECTOR_DELAY,
+    SETTING_INITIATOR,
+    SETTING_COUNT
+
+};
+
 int register_logic_gatt_service(void);
 int discover_logic_gatt_service(struct bt_conn* conn);
 int logic_gatt_write(struct bt_conn *conn, uint8_t data);

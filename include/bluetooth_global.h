@@ -32,5 +32,6 @@ void call_estimate_distance(void);
 int get_bt_le_cs_default_settings(bool is_reflector, struct bt_conn *connection);
 int start_bt_scan(void);
 int start_adv(void);
+void mark_as_anchor(bool is_anchor);
 
 #endif
