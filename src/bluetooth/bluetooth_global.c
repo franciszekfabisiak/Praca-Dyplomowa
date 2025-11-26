@@ -8,9 +8,9 @@ static struct bt_uuid_128 step_data_char_uuid =
 static const struct bt_uuid_128 step_data_svc_uuid =
 	BT_UUID_INIT_128(BT_UUID_128_ENCODE(0x87654321, 0x4567, 0x2389, 0x1254, 0xf67f9fedcba9));
 
-static const char sample_str[] = "CS Sample";
+static const char sample_str[] = "Device";
 static const struct bt_data ad[] = {
-	BT_DATA(BT_DATA_NAME_COMPLETE, "CS Sample", sizeof(sample_str) - 1),
+	BT_DATA(BT_DATA_NAME_COMPLETE, sample_str, sizeof(sample_str) - 1),
 };
 static const struct bt_data anchor_ad[] = {
 	BT_DATA(BT_DATA_NAME_COMPLETE, "Anchor", 7 - 1),
@@ -43,7 +43,7 @@ static K_SEM_DEFINE(sem_data_received, 0, 1);
 
 LOG_MODULE_REGISTER(bt_global);
 
-static struct bt_conn *connection;
+static struct bt_conn *connection_table[CONNECTIONS_MAX];
 
 // static declarations
 static ssize_t on_attr_write_cb(struct bt_conn *conn, const struct bt_gatt_attr *attr,
@@ -101,7 +101,7 @@ int register_step_data_gatt_service(void){
 }
 
 struct bt_conn* get_bt_connection(void){
-    return connection;
+    return connection_table[CONNECTION_DEVICE];
 }
 
 struct k_sem* get_sem_acl_encryption_enabled(void)
@@ -274,11 +274,20 @@ static void mtu_exchange_cb(struct bt_conn *conn, uint8_t err,
 static void connected_cb(struct bt_conn *conn, uint8_t err)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
-
+	struct bt_conn *connection;
 	(void)bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	LOG_INF("Connected to %s (err 0x%02X)", addr, err);
 
-	__ASSERT(connection == conn, "Unexpected connected callback");
+	if (strncmp(addr, "Device", 6) == 0) {
+		LOG_INF("Address begins with \"Device\"");
+		connection = connection_table[CONNECTION_DEVICE];
+	} else if (strncmp(addr, "Anchor", 6) == 0) {
+		LOG_INF("Address begins with \"Anchor\"");
+		connection = connection_table[CONNECTION_ANCHOR];
+	}
+	else{
+		connection = connection_table[CONNECTION_RESERVED];
+	}
 
 	if (err) {
 		bt_conn_unref(conn);
@@ -308,7 +317,7 @@ static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
 	LOG_ERR("Disconnected (reason 0x%02X)", reason);
 
 	bt_conn_unref(conn);
-	connection = NULL;
+	connection_table[CONNECTION_DEVICE] = NULL;
 	
 	bt_unpair(BT_ID_DEFAULT, BT_ADDR_LE_ANY);
 }
@@ -435,7 +444,7 @@ static void device_found(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
 	char name[NAME_LEN] = {};
 	int err;
 
-	if (connection) {
+	if (connection_table[CONNECTION_DEVICE] && connection_table[CONNECTION_SERVER]) {
 		return;
 	}
 
@@ -457,7 +466,7 @@ static void device_found(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
 	LOG_INF("Found device with name %s, connecting...", name);
 
 	err = bt_conn_le_create(addr, BT_CONN_LE_CREATE_CONN, BT_LE_CONN_PARAM_DEFAULT,
-				&connection);
+				&connection_table[CONNECTION_DEVICE]);
 	if (err) {
 		LOG_ERR("Create conn to %s failed (%u)", addr_str, err);
 	}

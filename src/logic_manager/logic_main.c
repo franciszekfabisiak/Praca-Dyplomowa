@@ -6,6 +6,7 @@
 #include "bluetooth_global.h"
 #include "bluetooth_device_control.h"
 #include "bluetooth_reflector.h"
+#include "bluetooth_initiator.h"
 
 static struct k_thread logic_thread_data;
 static k_tid_t logic_thread_id;
@@ -75,18 +76,58 @@ static void start_adv_event(uint8_t value)
 static void setup_device(uint8_t value)
 {
     int err;
+    struct bt_conn* connection;
+
     switch (value)
     {
     case SETTING_REFLECTOR:
-        err = setup_reflector();
-        struct bt_conn* connection = get_bt_connection();
+        LOG_INF("Start Reflector");
+
+        err = setup_reflector(false);
+        if (err) {
+            LOG_ERR("Failed to setup reflector (err: %d)", err);
+            return;
+	    }
+        connection = get_bt_connection();
         err = act_as_reflector(connection);
+        if (err) {
+            LOG_ERR("Failed to act as a reflector (err: %d)", err);
+            return;
+	    }
         break;
+
     case SETTING_REFLECTOR_DELAY:
-        /* code */
+
+        LOG_INF("Start Reflector Delay");
+
+        err = setup_reflector(true);
+        if (err) {
+            LOG_ERR("Failed to setup reflector (err: %d)", err);
+            return;
+	    }
+        connection = get_bt_connection();
+        err = act_as_reflector(connection);
+        if (err) {
+            LOG_ERR("Failed to act as a reflector (err: %d)", err);
+            return;
+	    }
         break;
+
     case SETTING_INITIATOR:
-        /* code */
+
+        LOG_INF("Start Initiator");  
+
+        is_initiator(true);
+        err = setup_initiator(true);
+        if (err) {
+            LOG_ERR("Failed to setup initiator (err: %d)", err);
+            return;
+	    }
+        err = act_as_initiator();
+        if (err) {
+            LOG_ERR("Failed to act as a initiator (err: %d)", err);
+            return;
+	    }
         break;
 
     default:

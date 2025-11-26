@@ -21,7 +21,7 @@ int act_as_anchor(void)
 
     if (err)
         LOG_ERR("Could not discover logic (err %d)", err);
-    uint8_t data = SETTING_REFLECTOR;
+    uint8_t data = SETTING_INITIATOR;
 
     err = logic_gatt_write(connection, data);
     if (err) 

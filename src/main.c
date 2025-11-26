@@ -19,8 +19,8 @@
 #include "bluetooth_device_control.h"
 #include "bluetooth_anchor.h"
 
-static bool anchor = true; 
-LOG_MODULE_REGISTER(main, CONFIG_LOG_DEFAULT_LEVEL);
+static bool anchor = false; 
+LOG_MODULE_REGISTER(main);
 
 int main(void)
 {
@@ -40,6 +40,7 @@ int main(void)
         err = act_as_anchor();
 
     if(!anchor){
+        // send_message(MESSAGE_SETUP_DEVICE, 1);
         while(1){
             k_sleep(K_SECONDS(10));
         }

@@ -13,7 +13,18 @@
 #define NUM_MODE_0_STEPS 1
 #define NAME_LEN          30
 #define STEP_DATA_BUF_LEN 512 /* Maximum GATT characteristic length */
-    
+
+enum connections
+{
+    CONNECTION_DEVICE = 0,
+    CONNECTION_ANCHOR,
+    CONNECTION_SERVER,
+    CONNECTION_RESERVED,
+    CONNECTION_RESERVED2,
+    CONNECTIONS_MAX
+
+};
+
 int ble_init(void);
 
 void is_initiator(bool is_init);

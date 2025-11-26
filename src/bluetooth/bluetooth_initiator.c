@@ -128,7 +128,7 @@ int act_as_initiator(void)
 		LOG_INF("after sem_done");
 		k_sem_take(sem_data_received, K_FOREVER);
 		call_estimate_distance();
-		// logic_gatt_notify(1);
+		// logic_gatt_notify(2);
 	}
 	return 0;
 }
